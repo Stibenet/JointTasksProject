@@ -1,13 +1,13 @@
 package com.malkollm.jointtasks.service;
 
+import com.malkollm.jointtasks.model.dto.TaskDTO;
 import com.malkollm.jointtasks.model.entity.Task;
 import com.malkollm.jointtasks.repository.TaskRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskService {
@@ -15,33 +15,36 @@ public class TaskService {
     @Autowired
     private TaskRepository taskRepository;
 
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+    // Получение всех задач
+    public List<TaskDTO> getAllTasks() {
+        return taskRepository.findAll().stream()
+                .map(TaskDTO::new) // Преобразуем Task в TaskDTO
+                .collect(Collectors.toList());
     }
 
-    @Transactional
-    public Task createTask(Task task) {
-        if (task.getId() != null) {
-            throw new IllegalArgumentException("ID must be null for new tasks");
-        }
-        task.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+    // Получение задач для конкретного пользователя
+    public List<Task> getTasksByUserId(Long userId) {
+        return taskRepository.findByUser_Id(userId);
+    }
+
+    // Создание новой задачи
+    public Task createTask(Task task, Long userId) {
+        task.getUser().setId(userId); // Установка пользователя для задачи
         return taskRepository.save(task);
     }
 
-    public Optional<Task> getTaskById(Long id) {
-        return taskRepository.findById(id);
-    }
-
-    public void deleteTask(Long id) {
-        taskRepository.deleteById(id);
-    }
-
-    @Transactional
-    public Task updateTask(Long id, Task updatedTask) {
-        return taskRepository.findById(id).map(task -> {
+    // Обновление существующей задачи
+    public Task updateTask(Long taskId, Task updatedTask) {
+        return taskRepository.findById(taskId).map(task -> {
             task.setName(updatedTask.getName());
             task.setDescription(updatedTask.getDescription());
+            task.setDate(updatedTask.getDate());
             return taskRepository.save(task);
         }).orElseThrow(() -> new RuntimeException("Task not found"));
+    }
+
+    // Удаление задачи
+    public void deleteTask(Long taskId) {
+        taskRepository.deleteById(taskId);
     }
 }

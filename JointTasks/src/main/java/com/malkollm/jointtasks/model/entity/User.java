@@ -1,7 +1,11 @@
 package com.malkollm.jointtasks.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
+
+import java.sql.Timestamp;
+import java.util.List;
 
 @Data
 @Entity
@@ -19,5 +23,9 @@ public class User {
     private String passwordHash;
 
     @Column(nullable = false, updatable = false)
-    private java.sql.Timestamp createdAt;
+    private Timestamp createdAt;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference // Управляемая сторона связи
+    private List<Task> tasks;
 }

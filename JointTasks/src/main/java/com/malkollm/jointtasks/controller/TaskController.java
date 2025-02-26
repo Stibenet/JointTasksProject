@@ -1,5 +1,6 @@
 package com.malkollm.jointtasks.controller;
 
+import com.malkollm.jointtasks.model.dto.TaskDTO;
 import com.malkollm.jointtasks.model.entity.Task;
 import com.malkollm.jointtasks.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,34 +16,34 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
+    // Получение всех задач
     @GetMapping
-    public ResponseEntity<List<Task>> getAllTasks() {
+    public ResponseEntity<List<TaskDTO>> getAllTasks() {
         return ResponseEntity.ok(taskService.getAllTasks());
     }
 
+    // Получение задач для конкретного пользователя
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Task>> getTasksByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(taskService.getTasksByUserId(userId));
+    }
+
+    // Создание новой задачи
     @PostMapping
-    public ResponseEntity<Task> createTask(@RequestBody Task task) {
-        if (task.getId() != null) {
-            return ResponseEntity.badRequest().body(null); // Запрещаем передачу ID
-        }
-        return ResponseEntity.ok(taskService.createTask(task));
+    public ResponseEntity<Task> createTask(@RequestBody Task task, @RequestParam Long userId) {
+        return ResponseEntity.ok(taskService.createTask(task, userId));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
-        return taskService.getTaskById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    // Обновление существующей задачи
+    @PutMapping("/{taskId}")
+    public ResponseEntity<Task> updateTask(@PathVariable Long taskId, @RequestBody Task updatedTask) {
+        return ResponseEntity.ok(taskService.updateTask(taskId, updatedTask));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task updatedTask) {
-        return ResponseEntity.ok(taskService.updateTask(id, updatedTask));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
-        taskService.deleteTask(id);
+    // Удаление задачи
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long taskId) {
+        taskService.deleteTask(taskId);
         return ResponseEntity.noContent().build();
     }
 }

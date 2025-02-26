@@ -1,136 +1,116 @@
 <template>
   <v-container class="pa-10" fluid>
-    <!-- Уведомление -->
-    <v-snackbar
-        v-model="snackbar.show"
-        :color="snackbar.color"
-        location="top"
-        timeout="3000"
-    >
-      {{ snackbar.text }}
-    </v-snackbar>
-
+    <!-- Кнопка для открытия диалога создания задачи -->
     <v-row justify="center">
       <v-col cols="12" sm="8" md="6">
         <h1 class="text-h4 text-center mb-8">Список задач</h1>
+        <v-btn color="primary" block @click="openCreateDialog()" class="mb-8">
+          Добавить задачу
+        </v-btn>
 
-        <!-- Форма добавления задачи -->
-        <v-card class="mb-8 pa-4" elevation="2">
+        <!-- Список задач для каждого пользователя -->
+        <template v-for="user in users" :key="user.id">
+          <v-card v-if="tasksByUser[user.id] && tasksByUser[user.id].length > 0" elevation="2" class="mb-8">
+            <v-card-title>Задачи для {{ user.username }}</v-card-title>
+            <v-list>
+              <v-list-item
+                  v-for="task in tasksByUser[user.id]"
+                  :key="task.id"
+                  class="mb-2 px-4 py-2"
+              >
+                <v-row align="center" no-gutters>
+                  <!-- Отображение названия задачи (только для чтения) -->
+                  <v-col cols="12" sm="7" class="pr-2">
+                    <div class="d-flex flex-column">
+                      <div class="font-weight-bold mb-1">{{ task.name }}</div>
+                      <div class="text-caption mb-1">{{ task.description || 'Без описания' }}</div>
+                      <div class="text-caption">{{ formatDate(task.date) }}</div>
+                    </div>
+                  </v-col>
+
+                  <!-- Кнопки управления -->
+                  <v-col cols="12" sm="2" class="d-flex justify-center px-2">
+                    <v-btn
+                        color="success"
+                        small
+                        @click="openEditDialog(task)"
+                        class="mb-2"
+                    >
+                      Редактировать
+                    </v-btn>
+                  </v-col>
+
+                  <v-col cols="12" sm="2" class="d-flex justify-center px-2">
+                    <v-btn
+                        color="error"
+                        small
+                        @click="deleteTask(task.id)"
+                        class="mb-2"
+                    >
+                      Удалить
+                    </v-btn>
+                  </v-col>
+                </v-row>
+              </v-list-item>
+            </v-list>
+          </v-card>
+
+          <!-- Сообщение, если задач нет для пользователя -->
+          <v-alert v-else type="info" class="mt-4 text-center">
+            Нет задач для {{ user.username }}.
+          </v-alert>
+        </template>
+      </v-col>
+    </v-row>
+
+    <!-- Всплывающее окно для создания/редактирования задачи -->
+    <v-dialog v-model="openDialog" max-width="500">
+      <v-card>
+        <v-card-title>{{ dialogTitle }}</v-card-title>
+        <v-card-text>
+          <v-select
+              v-model="currentTask.userId"
+              :items="users"
+              item-title="username"
+              item-value="id"
+              label="Выберите пользователя"
+              variant="outlined"
+              class="mb-4"
+          ></v-select>
           <v-text-field
-              v-model="newTask.name"
+              v-model="currentTask.name"
               label="Название задачи"
               variant="outlined"
               clearable
               hide-details
-              @keydown.enter="addTask"
               class="mb-4"
           ></v-text-field>
           <v-textarea
-              v-model="newTask.description"
+              v-model="currentTask.description"
               label="Описание задачи"
               variant="outlined"
-              clearable
-              hide-details
               rows="3"
+              hide-details
               class="mb-4"
           ></v-textarea>
           <v-text-field
-              v-model="newTask.date"
+              v-model="currentTask.date"
               label="Дата выполнения"
               type="date"
               variant="outlined"
-              clearable
               hide-details
               class="mb-4"
           ></v-text-field>
-          <v-btn
-              block
-              color="primary"
-              @click="addTask"
-              :disabled="!newTask.name.trim()"
-              class="mb-4"
-          >
-            Добавить задачу
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn text @click="closeDialog">Отмена</v-btn>
+          <v-btn color="primary" @click="saveTask" :disabled="!currentTask.name.trim()">
+            {{ isEditing ? 'Обновить' : 'Добавить' }}
           </v-btn>
-        </v-card>
-
-        <!-- Список задач -->
-        <v-card v-if="tasks.length > 0" elevation="2" class="mb-8">
-          <v-list>
-            <v-list-item
-                v-for="task in tasks"
-                :key="task.id"
-                class="mb-2 px-4 py-2"
-            >
-              <v-row align="center" no-gutters>
-                <!-- Редактирование названия задачи -->
-                <v-col cols="12" sm="7" class="pr-2">
-                  <v-text-field
-                      v-model="task.name"
-                      label="Название"
-                      variant="outlined"
-                      dense
-                      hide-details
-                      class="mb-2"
-                  >
-                    <template #append-inner>
-                      <!-- Оставьте пустым -->
-                    </template>
-                  </v-text-field>
-                  <v-textarea
-                      v-model="task.description"
-                      label="Описание"
-                      variant="outlined"
-                      dense
-                      rows="2"
-                      hide-details
-                      class="mb-2"
-                  ></v-textarea>
-                  <v-text-field
-                      v-model="task.date"
-                      label="Дата выполнения"
-                      type="date"
-                      variant="outlined"
-                      dense
-                      hide-details
-                      class="mb-2"
-                  ></v-text-field>
-                </v-col>
-
-                <!-- Кнопки управления -->
-                <v-col cols="12" sm="2" class="d-flex justify-center px-2">
-                  <v-btn
-                      color="success"
-                      small
-                      @click="updateTask(task)"
-                      :disabled="!task.name.trim()"
-                      class="mb-2"
-                  >
-                    Сохранить
-                  </v-btn>
-                </v-col>
-
-                <v-col cols="12" sm="2" class="d-flex justify-center px-2">
-                  <v-btn
-                      color="error"
-                      small
-                      @click="deleteTask(task.id)"
-                      class="mb-2"
-                  >
-                    Удалить
-                  </v-btn>
-                </v-col>
-              </v-row>
-            </v-list-item>
-          </v-list>
-        </v-card>
-
-        <!-- Сообщение, если задач нет -->
-        <v-alert v-else type="info" class="mt-8 text-center">
-          Список задач пуст.
-        </v-alert>
-      </v-col>
-    </v-row>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -138,12 +118,17 @@
 export default {
   data() {
     return {
-      tasks: [], // Массив задач
-      newTask: {
+      users: [], // Массив пользователей
+      tasks: [], // Массив всех задач
+      currentTask: {
+        id: null,
+        userId: null,
         name: '',
         description: '',
-        date: '', // Дата в формате YYYY-MM-DD
+        date: '',
       },
+      openDialog: false, // Флаг для отображения диалогового окна
+      isEditing: false, // Флаг для режима редактирования
       snackbar: {
         show: false,
         text: '',
@@ -151,61 +136,142 @@ export default {
       },
     };
   },
+  computed: {
+    // Группировка задач по пользователям
+    tasksByUser() {
+      return this.users.reduce((acc, user) => {
+        acc[user.id] = this.tasks.filter((task) => task.user.id === user.id);
+        return acc;
+      }, {});
+    },
+
+    // Заголовок диалогового окна
+    dialogTitle() {
+      return this.isEditing ? 'Редактирование задачи' : 'Добавление новой задачи';
+    },
+  },
   methods: {
     /**
-     * Получение списка задач с сервера
+     * Получение списка пользователей и задач с сервера
      */
-    async fetchTasks() {
+    async fetchTasksAndUsers() {
       try {
-        const response = await this.$axios.get('/tasks');
-        this.tasks = response.data.map((task) => ({
+        const [usersResponse, tasksResponse] = await Promise.all([
+          this.$axios.get('/users'), // Получаем список пользователей
+          this.$axios.get('/tasks'), // Получаем все задачи
+        ]);
+
+        this.users = usersResponse.data || []; // Если данных нет, используем пустой массив
+
+        this.tasks = (tasksResponse.data || []).map((task) => ({
           ...task,
           date: task.date ? new Date(task.date).toISOString().split('T')[0] : '', // Преобразование даты
         }));
+
+        // Проверяем, что каждый task имеет связанного пользователя
+        this.tasks = this.tasks.filter((task) => task.user !== undefined);
       } catch (error) {
-        console.error('Ошибка получения задач:', error);
-        this.showSnackbar('Ошибка загрузки задач', 'error');
+        console.error('Ошибка получения данных:', error);
+        this.showSnackbar('Ошибка загрузки данных', 'error');
+      }
+    },
+    /**
+     * Открытие диалога для создания новой задачи
+     */
+    openCreateDialog() {
+      this.isEditing = false;
+      this.resetCurrentTask();
+      this.openDialog = true;
+    },
+
+    /**
+     * Открытие диалога для редактирования задачи
+     */
+    openEditDialog(task) {
+      this.isEditing = true;
+      this.currentTask = { ...task }; // Создаем копию задачи
+      this.openDialog = true;
+    },
+
+    /**
+     * Сохранение задачи (создание или обновление)
+     */
+    async saveTask() {
+      if (!this.currentTask.name.trim()) return;
+
+      try {
+        if (this.isEditing) {
+          // Обновление существующей задачи
+          await this.$axios.put(`/tasks/${this.currentTask.id}`, {
+            name: this.currentTask.name,
+            description: this.currentTask.description,
+            date: this.currentTask.date,
+            user_id: this.currentTask.userId,
+          });
+          const updatedTask = { ...this.currentTask };
+          updatedTask.date = updatedTask.date.split('T')[0]; // Преобразование даты
+          this.updateTaskInList(updatedTask);
+          this.showSnackbar('Задача успешно обновлена', 'success');
+        } else {
+          // Создание новой задачи
+          const response = await this.$axios.post('/tasks', {
+            name: this.currentTask.name,
+            description: this.currentTask.description,
+            date: this.currentTask.date || new Date().toISOString().split('T')[0], // Текущая дата, если не указана
+            user_id: this.currentTask.userId,
+          });
+
+          const newTask = response.data;
+          newTask.date = newTask.date.split('T')[0]; // Преобразование даты
+          newTask.user = this.users.find((user) => user.id === newTask.user.id); // Привязка пользователя
+          this.tasks.push(newTask);
+
+          this.showSnackbar('Задача успешно добавлена', 'success');
+        }
+
+        this.closeDialog();
+      } catch (error) {
+        console.error('Ошибка сохранения задачи:', error);
+        this.showSnackbar('Ошибка сохранения задачи', 'error');
       }
     },
 
     /**
-     * Добавление новой задачи
+     * Обновление задачи в списке
      */
-    async addTask() {
-      if (!this.newTask.name.trim()) return;
-
-      try {
-        const response = await this.$axios.post('/tasks', {
-          name: this.newTask.name,
-          description: this.newTask.description,
-          date: this.newTask.date || new Date().toISOString().split('T')[0], // Текущая дата, если не указана
-        });
-        const newTask = response.data;
-        newTask.date = newTask.date.split('T')[0]; // Преобразование даты
-        this.tasks.push(newTask);
-        this.resetNewTask();
-        this.showSnackbar('Задача успешно добавлена', 'success');
-      } catch (error) {
-        console.error('Ошибка добавления задачи:', error);
-        this.showSnackbar('Ошибка добавления задачи', 'error');
+    updateTaskInList(updatedTask) {
+      const index = this.tasks.findIndex((task) => task.id === updatedTask.id);
+      if (index !== -1) {
+        this.$set(this.tasks, index, updatedTask); // Обновляем задачу в списке
       }
     },
 
     /**
-     * Обновление задачи
+     * Закрытие диалогового окна
      */
-    async updateTask(task) {
-      try {
-        await this.$axios.put(`/tasks/${task.id}`, {
-          name: task.name,
-          description: task.description,
-          date: task.date,
-        });
-        this.showSnackbar('Задача успешно обновлена', 'success');
-      } catch (error) {
-        console.error('Ошибка обновления задачи:', error);
-        this.showSnackbar('Ошибка обновления задачи', 'error');
-      }
+    closeDialog() {
+      this.openDialog = false;
+      this.resetCurrentTask();
+    },
+
+    /**
+     * Сброс текущей задачи
+     */
+    resetCurrentTask() {
+      this.currentTask = {
+        id: null,
+        userId: null,
+        name: '',
+        description: '',
+        date: '',
+      };
+    },
+
+    /**
+     * Форматирование даты
+     */
+    formatDate(date) {
+      return date ? new Date(date).toLocaleDateString() : '';
     },
 
     /**
@@ -223,17 +289,6 @@ export default {
     },
 
     /**
-     * Сброс формы создания задачи
-     */
-    resetNewTask() {
-      this.newTask = {
-        name: '',
-        description: '',
-        date: '',
-      };
-    },
-
-    /**
      * Показать уведомление
      */
     showSnackbar(text, color) {
@@ -243,7 +298,7 @@ export default {
     },
   },
   mounted() {
-    this.fetchTasks(); // Загрузка задач при загрузке компонента
+    this.fetchTasksAndUsers(); // Загрузка данных при загрузке компонента
   },
 };
 </script>
