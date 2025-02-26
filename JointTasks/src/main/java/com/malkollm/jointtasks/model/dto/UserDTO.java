@@ -17,6 +17,6 @@ public class UserDTO {
     public UserDTO(User user) {
         this.id = user.getId();
         this.username = user.getUsername();
-        this.createdAt = user.getCreatedAt().toLocalDateTime();
+        this.createdAt = user.getCreatedAt() != null ? user.getCreatedAt().toLocalDateTime() : null;
     }
 }

@@ -10,19 +10,19 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL) // Исключаем null-значения
 public class TaskDTO {
 
-//    private Long id;
+    private Long id;
     private String name;
     private String description;
     private LocalDateTime date;
     private LocalDateTime createdAt;
-    private UserDTO user; // Ссылка на пользователя
+    private UserDTO user;
 
     public TaskDTO(Task task) {
-//        this.id = task.getId();
+        this.id = task.getId();
         this.name = task.getName();
         this.description = task.getDescription();
-        this.date = task.getDate().toLocalDateTime();
-        this.createdAt = task.getCreatedAt().toLocalDateTime();
+        this.date = task.getDate() != null ? task.getDate().toLocalDateTime() : null;
+        this.createdAt = task.getCreatedAt() != null ? task.getCreatedAt().toLocalDateTime() : null;
 
         if (task.getUser() != null) {
             this.user = new UserDTO(task.getUser());

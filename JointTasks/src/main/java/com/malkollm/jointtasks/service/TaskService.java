@@ -28,8 +28,10 @@ public class TaskService {
     }
 
     // Создание новой задачи
-    public Task createTask(Task task, Long userId) {
-        task.getUser().setId(userId); // Установка пользователя для задачи
+    public Task createTask(Task task) {
+        if (task.getUser() == null) {
+            throw new IllegalArgumentException("Пользователь не связан с задачей");
+        }
         return taskRepository.save(task);
     }
 

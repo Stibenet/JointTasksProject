@@ -8,7 +8,5 @@ import java.util.List;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
-
-    // Получение задач по ID пользователя
-    List<Task> findByUser_Id(Long userId);
+    List<Task> findByUser_Id(Long userId); // Поиск задач по ID пользователя
 }

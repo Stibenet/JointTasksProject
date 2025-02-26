@@ -3,6 +3,8 @@ package com.malkollm.jointtasks.model.entity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.sql.Timestamp;
 
@@ -13,6 +15,7 @@ public class Task {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
     @Column(nullable = false)
@@ -29,8 +32,22 @@ public class Task {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonBackReference // Исключаем обратную ссылку на задачи
+    @JsonBackReference
     private User user;
+
+    // Поле для передачи user_id через JSON
+    @Setter
+    @Getter
+    @Transient
+    private Long userId;
+
+    // Конструктор без параметров
+    public Task() {}
+
+    // Геттеры и сеттеры для userId
+//    public Long getUserId() {
+//        return user != null ? user.getId() : null;
+//    }
 
     @PrePersist
     public void prePersist() {

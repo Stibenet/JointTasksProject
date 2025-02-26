@@ -2,12 +2,16 @@ package com.malkollm.jointtasks.controller;
 
 import com.malkollm.jointtasks.model.dto.TaskDTO;
 import com.malkollm.jointtasks.model.entity.Task;
+import com.malkollm.jointtasks.model.entity.User;
 import com.malkollm.jointtasks.service.TaskService;
+import com.malkollm.jointtasks.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -15,6 +19,8 @@ public class TaskController {
 
     @Autowired
     private TaskService taskService;
+    @Autowired
+    private UserService userService;
 
     // Получение всех задач
     @GetMapping
@@ -30,8 +36,24 @@ public class TaskController {
 
     // Создание новой задачи
     @PostMapping
-    public ResponseEntity<Task> createTask(@RequestBody Task task, @RequestParam Long userId) {
-        return ResponseEntity.ok(taskService.createTask(task, userId));
+    public ResponseEntity<TaskDTO> createTask(@RequestBody Task task) {
+        // Находим пользователя по userId
+        User optionalUser = userService.getUserById(task.getUserId());
+
+
+        // Устанавливаем ссылку на пользователя
+        task.setUser(optionalUser);
+
+        // Если дата не указана, устанавливаем текущую дату
+        if (task.getDate() == null) {
+            task.setDate(new java.sql.Timestamp(System.currentTimeMillis()));
+        }
+
+        // Создаем задачу
+        Task createdTask = taskService.createTask(task);
+
+        // Возвращаем созданную задачу в формате DTO
+        return ResponseEntity.ok(new TaskDTO(createdTask));
     }
 
     // Обновление существующей задачи
